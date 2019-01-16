@@ -109,7 +109,7 @@ func (w *WatchManager) diff(ctx context.Context, st store.RStore) (setup []Watch
 		if m.IsDC() {
 			manifestsToProcess[m.Name] = dcManifest{name: m.Name, DockerComposeTarget: m.DockerComposeTarget()}
 		} else {
-			manifestsToProcess[m.Name] = imageManifest{name: m.Name, ImageTarget: m.ImageTarget}
+			manifestsToProcess[m.Name] = imageManifest{name: m.Name, ImageTarget: m.ImageTarget()}
 		}
 	}
 

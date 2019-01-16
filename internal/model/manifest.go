@@ -26,7 +26,7 @@ type Manifest struct {
 
 	// Info needed to Docker build an image. (This struct contains details of StaticBuild, FastBuild... etc.)
 	// (If we ever support multiple build engines, this can become an interface wildcard similar to `deployTarget`).
-	ImageTarget ImageTarget
+	imageTarget ImageTarget
 
 	// Info needed to deploy. Can be k8s yaml, docker compose, etc.
 	deployTarget TargetSpec
@@ -37,6 +37,15 @@ func (m Manifest) ID() TargetID {
 		Type: TargetTypeManifest,
 		Name: m.Name.TargetName(),
 	}
+}
+
+func (m Manifest) ImageTarget() ImageTarget {
+	return m.imageTarget
+}
+
+func (m Manifest) WithImageTarget(iTarget ImageTarget) Manifest {
+	m.imageTarget = iTarget
+	return m
 }
 
 type DockerBuildArgs map[string]string
@@ -80,7 +89,7 @@ func (m Manifest) LocalPaths() []string {
 	case DockerComposeTarget:
 		return di.LocalPaths()
 	default:
-		return m.ImageTarget.LocalPaths()
+		return m.ImageTarget().LocalPaths()
 	}
 }
 
@@ -89,8 +98,8 @@ func (m Manifest) Validate() error {
 		return fmt.Errorf("[validate] manifest missing name: %+v", m)
 	}
 
-	if !m.ImageTarget.ID().Empty() || m.IsK8s() {
-		err := m.ImageTarget.Validate()
+	if !m.ImageTarget().ID().Empty() || m.IsK8s() {
+		err := m.ImageTarget().Validate()
 		if err != nil {
 			return err
 		}
@@ -108,7 +117,7 @@ func (m Manifest) Validate() error {
 
 func (m1 Manifest) Equal(m2 Manifest) bool {
 	primitivesMatch := m1.Name == m2.Name && m1.tiltFilename == m2.tiltFilename
-	dockerEqual := DeepEqual(m1.ImageTarget, m2.ImageTarget)
+	dockerEqual := DeepEqual(m1.ImageTarget(), m2.ImageTarget())
 
 	dc1 := m1.DockerComposeTarget()
 	dc2 := m2.DockerComposeTarget()

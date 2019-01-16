@@ -147,7 +147,7 @@ func TestContainerBuildLocal(t *testing.T) {
 	}
 	f.assertContainerRestarts(1)
 
-	id := manifest.ImageTarget.ID()
+	id := manifest.ImageTarget().ID()
 	assert.Equal(t, k8s.MagicTestContainerID, result[id].ContainerID.String())
 }
 
@@ -173,7 +173,7 @@ func TestContainerBuildSynclet(t *testing.T) {
 		t.Errorf("Expected 1 synclet containerUpdate, actual: %d", f.sCli.UpdateContainerCount)
 	}
 
-	id := manifest.ImageTarget.ID()
+	id := manifest.ImageTarget().ID()
 	assert.Equal(t, k8s.MagicTestContainerID, result[id].ContainerID.String())
 }
 
@@ -272,7 +272,7 @@ func TestIncrementalBuildTwice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	id := manifest.ImageTarget.ID()
+	id := manifest.ImageTarget().ID()
 	rSet := firstResult[id].FilesReplacedSet
 	if len(rSet) != 1 || !rSet[aPath] {
 		t.Errorf("Expected replaced set with a.txt, actual: %v", rSet)
@@ -324,7 +324,7 @@ func TestIncrementalBuildTwiceDeadPod(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	id := manifest.ImageTarget.ID()
+	id := manifest.ImageTarget().ID()
 	rSet := firstResult[id].FilesReplacedSet
 	if len(rSet) != 1 || !rSet[aPath] {
 		t.Errorf("Expected replaced set with a.txt, actual: %v", rSet)
@@ -387,11 +387,11 @@ func TestIgnoredFiles(t *testing.T) {
 	manifest := NewSanchoFastBuildManifest(f)
 
 	tiltfile := filepath.Join(f.Path(), "Tiltfile")
-	manifest.ImageTarget = manifest.ImageTarget.WithRepos([]model.LocalGitRepo{
+	manifest = manifest.WithImageTarget(manifest.ImageTarget().WithRepos([]model.LocalGitRepo{
 		model.LocalGitRepo{
 			LocalPath: f.Path(),
 		},
-	}).WithTiltFilename(tiltfile)
+	}).WithTiltFilename(tiltfile))
 	manifest = manifest.WithTiltFilename(tiltfile)
 
 	f.WriteFile("Tiltfile", "# hello world")

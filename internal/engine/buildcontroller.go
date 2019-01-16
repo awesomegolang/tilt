@@ -214,7 +214,7 @@ func buildTargets(manifest model.Manifest) []model.TargetSpec {
 	}
 
 	if manifest.IsK8s() {
-		return []model.TargetSpec{manifest.ImageTarget, manifest.K8sTarget()}
+		return []model.TargetSpec{manifest.ImageTarget(), manifest.K8sTarget()}
 	}
 
 	return nil
@@ -224,7 +224,7 @@ func buildTargets(manifest model.Manifest) []model.TargetSpec {
 func buildStateSet(manifest model.Manifest, ms *store.ManifestState) store.BuildStateSet {
 	buildStateSet := store.BuildStateSet{}
 
-	id := manifest.ImageTarget.ID()
+	id := manifest.ImageTarget().ID()
 	if id.Empty() {
 		id = manifest.DockerComposeTarget().ID()
 	}

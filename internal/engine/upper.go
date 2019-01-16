@@ -241,7 +241,7 @@ func handleCompletedBuild(ctx context.Context, engineState *store.EngineState, c
 
 	ms := mt.State
 	manifest := mt.Manifest
-	result := cb.Result[manifest.ImageTarget.ID()]
+	result := cb.Result[manifest.ImageTarget().ID()]
 
 	bs := ms.CurrentBuild
 	bs.Error = err
@@ -465,7 +465,7 @@ func ensureManifestTargetWithPod(state *store.EngineState, pod *v1.Pod) (*store.
 	ms := mt.State
 	manifest := mt.Manifest
 
-	imageID, err := k8s.FindImageNamedTaggedMatching(pod.Spec, manifest.ImageTarget.Ref)
+	imageID, err := k8s.FindImageNamedTaggedMatching(pod.Spec, manifest.ImageTarget().Ref)
 	if err != nil || imageID == nil {
 		// Ditto, this could happen if we get a pod from an old version of the manifest.
 		return nil, nil
@@ -570,7 +570,7 @@ func handlePodEvent(ctx context.Context, state *store.EngineState, pod *v1.Pod) 
 	defer prunePods(ms)
 
 	// Check if the container is ready.
-	cStatus, err := k8s.ContainerMatching(pod, manifest.ImageTarget.Ref)
+	cStatus, err := k8s.ContainerMatching(pod, manifest.ImageTarget().Ref)
 	if err != nil {
 		logger.Get(ctx).Debugf("Error matching container: %v", err)
 		return

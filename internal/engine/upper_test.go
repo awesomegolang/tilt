@@ -237,7 +237,7 @@ func TestUpper_UpWatchFileChange(t *testing.T) {
 
 	f.timerMaker.maxTimerLock.Lock()
 	call := f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 	assert.Equal(t, []string{}, call.oneState().FilesChanged())
 
 	f.waitForCompletedBuildCount(1)
@@ -246,7 +246,7 @@ func TestUpper_UpWatchFileChange(t *testing.T) {
 	f.fsWatcher.events <- watch.FileEvent{Path: fileRelPath}
 
 	call = f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 	assert.Equal(t, "docker.io/library/foobar:tilt-1", call.oneState().LastImageAsString())
 	fileAbsPath, err := filepath.Abs(fileRelPath)
 	if err != nil {
@@ -274,7 +274,7 @@ func TestUpper_UpWatchCoalescedFileChanges(t *testing.T) {
 
 	f.timerMaker.maxTimerLock.Lock()
 	call := f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 	assert.Equal(t, []string{}, call.oneState().FilesChanged())
 
 	f.timerMaker.restTimerLock.Lock()
@@ -286,7 +286,7 @@ func TestUpper_UpWatchCoalescedFileChanges(t *testing.T) {
 	f.timerMaker.restTimerLock.Unlock()
 
 	call = f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 
 	var fileAbsPaths []string
 	for _, fileRelPath := range fileRelPaths {
@@ -312,7 +312,7 @@ func TestUpper_UpWatchCoalescedFileChangesHitMaxTimeout(t *testing.T) {
 	f.Start([]model.Manifest{manifest}, true)
 
 	call := f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 	assert.Equal(t, []string{}, call.oneState().FilesChanged())
 
 	f.timerMaker.maxTimerLock.Lock()
@@ -325,7 +325,7 @@ func TestUpper_UpWatchCoalescedFileChangesHitMaxTimeout(t *testing.T) {
 	f.timerMaker.maxTimerLock.Unlock()
 
 	call = f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 
 	var fileAbsPaths []string
 	for _, fileRelPath := range fileRelPaths {
@@ -832,7 +832,7 @@ k8s_resource('foobar', 'snack.yaml')
 			Cmd:           model.ToShellCmd("changed"),
 			BaseDirectory: f.Path(),
 		}}
-		assert.Equal(t, expectedSteps, mt.Manifest.ImageTarget.FastBuildInfo().Steps)
+		assert.Equal(t, expectedSteps, mt.Manifest.ImageTarget().FastBuildInfo().Steps)
 	})
 }
 
@@ -844,11 +844,11 @@ ADD ./ ./
 go build ./...
 `
 	manifest := f.newManifest("foobar", nil)
-	manifest.ImageTarget = manifest.ImageTarget.WithBuildDetails(
+	manifest = manifest.WithImageTarget(manifest.ImageTarget().WithBuildDetails(
 		model.StaticBuild{
 			Dockerfile: df,
 			BuildPath:  f.Path(),
-		})
+		}))
 
 	f.Start([]model.Manifest{manifest}, true)
 
@@ -1367,18 +1367,18 @@ func TestUpper_WatchDockerIgnoredFiles(t *testing.T) {
 	defer f.TearDown()
 	mount := model.Mount{LocalPath: f.Path(), ContainerPath: "/go"}
 	manifest := f.newManifest("foobar", []model.Mount{mount})
-	manifest.ImageTarget = manifest.ImageTarget.
+	manifest = manifest.WithImageTarget(manifest.ImageTarget().
 		WithDockerignores([]model.Dockerignore{
 			{
 				LocalPath: f.Path(),
 				Contents:  "dignore.txt",
 			},
-		})
+		}))
 
 	f.Start([]model.Manifest{manifest}, true)
 
 	call := f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 
 	f.fsWatcher.events <- watch.FileEvent{Path: f.JoinPath("dignore.txt")}
 	f.assertNoCall("event for ignored file should not trigger build")
@@ -1393,18 +1393,18 @@ func TestUpper_WatchGitIgnoredFiles(t *testing.T) {
 	defer f.TearDown()
 	mount := model.Mount{LocalPath: f.Path(), ContainerPath: "/go"}
 	manifest := f.newManifest("foobar", []model.Mount{mount})
-	manifest.ImageTarget = manifest.ImageTarget.
+	manifest = manifest.WithImageTarget(manifest.ImageTarget().
 		WithRepos([]model.LocalGitRepo{
 			{
 				LocalPath:         f.Path(),
 				GitignoreContents: "gignore.txt",
 			},
-		})
+		}))
 
 	f.Start([]model.Manifest{manifest}, true)
 
 	call := f.nextCall()
-	assert.Equal(t, manifest.ImageTarget, call.image())
+	assert.Equal(t, manifest.ImageTarget(), call.image())
 
 	f.fsWatcher.events <- watch.FileEvent{Path: f.JoinPath("gignore.txt")}
 	f.assertNoCall("event for ignored file should not trigger build")
@@ -1708,7 +1708,7 @@ func TestNewMountsAreWatched(t *testing.T) {
 	})
 
 	f.WaitUntilManifest("has new mounts", "mani1", func(mt store.ManifestTarget) bool {
-		return len(mt.Manifest.ImageTarget.FastBuildInfo().Mounts) == 2
+		return len(mt.Manifest.ImageTarget().FastBuildInfo().Mounts) == 2
 	})
 
 	f.PollUntil("watches setup", func() bool {
@@ -2304,12 +2304,12 @@ func (f *testFixture) newManifest(name string, mounts []model.Mount) model.Manif
 	ref := f.imageNameForManifest(name)
 	return model.Manifest{
 		Name: model.ManifestName(name),
-		ImageTarget: model.ImageTarget{Ref: ref}.
-			WithBuildDetails(model.FastBuild{
-				BaseDockerfile: `from golang:1.10`,
-				Mounts:         mounts,
-			}),
-	}.WithDeployTarget(model.K8sTarget{
+	}.WithImageTarget(model.ImageTarget{Ref: ref}.
+		WithBuildDetails(model.FastBuild{
+			BaseDockerfile: `from golang:1.10`,
+			Mounts:         mounts,
+		}),
+	).WithDeployTarget(model.K8sTarget{
 		YAML: "fake-yaml",
 	})
 }
@@ -2405,7 +2405,7 @@ func dcContainerEvtForManifest(m model.Manifest, action dockercompose.Action) do
 
 func containerResultSet(manifest model.Manifest, id container.ID) store.BuildResultSet {
 	resultSet := store.BuildResultSet{}
-	resultSet[manifest.ImageTarget.ID()] = store.BuildResult{
+	resultSet[manifest.ImageTarget().ID()] = store.BuildResult{
 		ContainerID: id,
 	}
 	return resultSet
